@@ -60,11 +60,14 @@ function parseHttpRequest(rawRequest: string): HttpRequest {
   let headers: HttpHeaders | undefined;
   let body: string | undefined;
 
+  // If there is a blank line
   if (blankLineIndex !== -1) {
     headers = parseHttpHeaders(lines.slice(1, blankLineIndex));
     body = lines.slice(blankLineIndex + 1).join("\r\n");
     if (body.length === 0) body = undefined;
-  } else {
+  }
+  // If there is no blank line
+  else {
     headers = parseHttpHeaders(lines.slice(1));
   }
 
@@ -96,21 +99,34 @@ function createHttpResponse(response: HttpResponse): string {
 function handleHttpRequest(request: HttpRequest): HttpResponse {
   const { method, path } = request.requestLine;
 
+  // GET /
   if (method === "GET" && path === "/") {
     return {
       statusCode: 200,
       statusMessage: "OK",
     };
-  } else if (method === "GET" && path.startsWith("/echo/")) {
-    const echoContent = path.slice(6);
+  }
+  // GET /echo/:content
+  else if (method === "GET" && path.startsWith("/echo/")) {
+    const content = path.slice(6);
     return {
       statusCode: 200,
       statusMessage: "OK",
       headers: new Map([
         ["Content-Type", "text/plain"],
-        ["Content-Length", echoContent.length.toString()],
+        ["Content-Length", content.length.toString()],
       ]),
-      body: echoContent,
+      body: content,
+    };
+  }
+  // GET /user-agent
+  else if (method === "GET" && path === "/user-agent") {
+    const userAgent = request.headers?.get("user-agent");
+    return {
+      statusCode: 200,
+      statusMessage: "OK",
+      headers: new Map([["Content-Type", "text/plain"]]),
+      body: userAgent,
     };
   } else {
     return {
