@@ -1,56 +1,140 @@
 import * as net from "net";
 
-type RequestLine = {
-  httpMethod: string;
-  requestTarget: string;
-  httpVersion: string;
+// Types
+type HttpMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "PATCH"
+  | "OPTIONS"
+  | "HEAD";
+
+type HttpRequestLine = {
+  method: HttpMethod;
+  path: string;
+  version: string;
 };
+
+type HttpHeaders = Map<string, string>;
 
 type HttpRequest = {
-  requestLine: RequestLine;
-  headers: Map<string, string>;
-  body: string;
+  requestLine: HttpRequestLine;
+  headers?: HttpHeaders;
+  body?: string;
 };
 
-function parseRequestLine(requestLine: string): RequestLine {
-  const [httpMethod, requestTarget, httpVersion] = requestLine.split(" ");
-  return { httpMethod, requestTarget, httpVersion };
+type HttpResponse = {
+  statusCode: number;
+  statusMessage: string;
+  headers?: HttpHeaders;
+  body?: string;
+};
+
+// Request parsing functions
+function parseHttpRequestLine(requestLineText: string): HttpRequestLine {
+  const parts = requestLineText.split(" ");
+  if (parts.length !== 3) {
+    throw new Error("Invalid HTTP request line");
+  }
+  const [method, path, version] = parts;
+  return { method: method as HttpMethod, path, version };
 }
 
-function parseHeaders(headerLines: string[]): Map<string, string> {
+function parseHttpHeaders(headerLines: string[]): HttpHeaders {
   const headers = new Map<string, string>();
-  headerLines.forEach((line) => {
+  for (const line of headerLines) {
     const [key, value] = line.split(": ");
-    headers.set(key, value);
-  });
+    if (key && value) {
+      headers.set(key.toLowerCase(), value);
+    }
+  }
   return headers;
 }
 
-function parseRequest(request: string): HttpRequest {
-  const lines = request.split("\r\n");
-  const requestLine = parseRequestLine(lines[0]);
-  const separatorIndex = lines.findIndex((line) => line === "");
-  const headers = parseHeaders(lines.slice(1, separatorIndex));
-  const body = lines.slice(separatorIndex + 1).join("\r\n");
+function parseHttpRequest(rawRequest: string): HttpRequest {
+  const lines = rawRequest.split("\r\n");
+  const requestLine = parseHttpRequestLine(lines[0]);
+  const blankLineIndex = lines.findIndex((line) => line === "");
+
+  let headers: HttpHeaders | undefined;
+  let body: string | undefined;
+
+  if (blankLineIndex !== -1) {
+    headers = parseHttpHeaders(lines.slice(1, blankLineIndex));
+    body = lines.slice(blankLineIndex + 1).join("\r\n");
+    if (body.length === 0) body = undefined;
+  } else {
+    headers = parseHttpHeaders(lines.slice(1));
+  }
+
+  if (headers.size === 0) headers = undefined;
 
   return { requestLine, headers, body };
 }
 
-const server = net.createServer((socket) => {
-  socket.on("data", (data) => {
-    const request = data.toString();
-    const parsedRequest = parseRequest(request);
+// Response creation function
+function createHttpResponse(response: HttpResponse): string {
+  let responseText = `HTTP/1.1 ${response.statusCode} ${response.statusMessage}\r\n`;
 
-    if (
-      parsedRequest.requestLine.httpMethod === "GET" &&
-      parsedRequest.requestLine.requestTarget === "/"
-    ) {
-      socket.write("HTTP/1.1 200 OK\r\n\r\n");
-    } else {
-      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+  if (response.headers) {
+    for (const [key, value] of response.headers) {
+      responseText += `${key}: ${value}\r\n`;
     }
+  }
 
-    socket.end();
+  responseText += "\r\n";
+
+  if (response.body) {
+    responseText += response.body;
+  }
+
+  return responseText;
+}
+
+// Request handling function
+function handleHttpRequest(request: HttpRequest): HttpResponse {
+  const { method, path } = request.requestLine;
+
+  if (method === "GET" && path === "/") {
+    return {
+      statusCode: 200,
+      statusMessage: "OK",
+    };
+  } else if (method === "GET" && path.startsWith("/echo/")) {
+    const echoContent = path.slice(6);
+    return {
+      statusCode: 200,
+      statusMessage: "OK",
+      headers: new Map([
+        ["Content-Type", "text/plain"],
+        ["Content-Length", echoContent.length.toString()],
+      ]),
+      body: echoContent,
+    };
+  } else {
+    return {
+      statusCode: 404,
+      statusMessage: "Not Found",
+    };
+  }
+}
+
+// Create and start the server
+const httpServer = net.createServer((socket) => {
+  socket.on("data", (data) => {
+    try {
+      const rawRequest = data.toString();
+      const parsedRequest = parseHttpRequest(rawRequest);
+      const response = handleHttpRequest(parsedRequest);
+      const responseText = createHttpResponse(response);
+      socket.write(responseText);
+    } catch (error) {
+      console.error("Error handling HTTP request:", error);
+      socket.write("HTTP/1.1 500 Internal Server Error\r\n\r\n");
+    } finally {
+      socket.end();
+    }
   });
 
   socket.on("error", (err) => {
@@ -58,6 +142,9 @@ const server = net.createServer((socket) => {
   });
 });
 
-server.listen(4221, "localhost", () => {
-  console.log("Server listening on localhost:4221");
+const HTTP_PORT = 4221;
+const HTTP_HOST = "localhost";
+
+httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
+  console.log(`HTTP server listening on ${HTTP_HOST}:${HTTP_PORT}`);
 });
