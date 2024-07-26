@@ -125,7 +125,10 @@ function handleHttpRequest(request: HttpRequest): HttpResponse {
     return {
       statusCode: 200,
       statusMessage: "OK",
-      headers: new Map([["Content-Type", "text/plain"]]),
+      headers: new Map([
+        ["Content-Type", "text/plain"],
+        ["Content-Length", userAgent?.length.toString() ?? "0"],
+      ]),
       body: userAgent,
     };
   } else {
