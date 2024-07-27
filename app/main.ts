@@ -95,7 +95,11 @@ function createHttpResponse(response: HttpResponse): string | Buffer {
   responseText += "\r\n";
 
   if (response.body) {
-    responseText += response.body;
+    if (typeof response.body === "string") {
+      responseText += response.body;
+    } else {
+      return Buffer.concat([Buffer.from(responseText), response.body]);
+    }
   }
 
   return responseText;
@@ -105,56 +109,65 @@ function createHttpResponse(response: HttpResponse): string | Buffer {
 async function handleHttpRequest(request: HttpRequest): Promise<HttpResponse> {
   const { method, path: reqPath } = request.requestLine;
 
-  switch (true) {
-    case method === "GET" && reqPath === "/":
-      return { statusCode: 200, statusMessage: "OK" };
+  if (method === "GET" && reqPath === "/") {
+    return { statusCode: 200, statusMessage: "OK" };
+  } else if (method === "GET" && reqPath.startsWith("/echo/")) {
+    const content = reqPath.slice(6);
+    return {
+      statusCode: 200,
+      statusMessage: "OK",
+      headers: new Map([
+        ["Content-Type", "text/plain"],
+        ["Content-Length", content.length.toString()],
+      ]),
+      body: content,
+    };
+  } else if (method === "GET" && reqPath === "/user-agent") {
+    const userAgent = request.headers?.get("user-agent") || "";
+    return {
+      statusCode: 200,
+      statusMessage: "OK",
+      headers: new Map([
+        ["Content-Type", "text/plain"],
+        ["Content-Length", userAgent.length.toString()],
+      ]),
+      body: userAgent,
+    };
+  } else if (method === "GET" && reqPath.startsWith("/files/")) {
+    const fileName = reqPath.slice(7);
+    const filePath = path.join(FILE_DIRECTORY, fileName);
 
-    case method === "GET" && reqPath.startsWith("/echo/"):
-      const content = reqPath.slice(6);
+    try {
+      const file = await fs.readFile(filePath);
       return {
         statusCode: 200,
         statusMessage: "OK",
         headers: new Map([
-          ["Content-Type", "text/plain"],
-          ["Content-Length", content.length.toString()],
+          ["Content-Type", "application/octet-stream"],
+          ["Content-Length", file.length.toString()],
         ]),
-        body: content,
+        body: file,
       };
-
-    case method === "GET" && reqPath === "/user-agent":
-      const userAgent = request.headers?.get("user-agent") || "";
-      return {
-        statusCode: 200,
-        statusMessage: "OK",
-        headers: new Map([
-          ["Content-Type", "text/plain"],
-          ["Content-Length", userAgent.length.toString()],
-        ]),
-        body: userAgent,
-      };
-
-    case method === "GET" && reqPath.startsWith("/files/"):
-      const fileName = reqPath.slice(7);
-      const filePath = path.join(FILE_DIRECTORY, fileName);
-
-      try {
-        await fs.access(filePath, fs.constants.R_OK);
-        const file = await fs.readFile(filePath);
-        return {
-          statusCode: 200,
-          statusMessage: "OK",
-          headers: new Map([
-            ["Content-Type", "application/octet-stream"],
-            ["Content-Length", file.length.toString()],
-          ]),
-          body: file,
-        };
-      } catch (error) {
-        return { statusCode: 404, statusMessage: "Not Found" };
-      }
-
-    default:
+    } catch (error) {
       return { statusCode: 404, statusMessage: "Not Found" };
+    }
+  } else if (method === "POST" && reqPath.startsWith("/files/")) {
+    const fileName = reqPath.slice(7);
+    const filePath = path.join(FILE_DIRECTORY, fileName);
+    const contentType = request.headers?.get("content-type");
+
+    if (contentType !== "application/octet-stream") {
+      return { statusCode: 415, statusMessage: "Unsupported Media Type" };
+    }
+
+    try {
+      await fs.writeFile(filePath, request.body || "");
+      return { statusCode: 201, statusMessage: "Created" };
+    } catch (error) {
+      return { statusCode: 403, statusMessage: "Forbidden" };
+    }
+  } else {
+    return { statusCode: 404, statusMessage: "Not Found" };
   }
 }
 
