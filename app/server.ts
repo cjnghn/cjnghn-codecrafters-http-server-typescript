@@ -20,6 +20,13 @@ process.argv.forEach((arg, index) => {
 
 const router = new Router();
 
+router.addRoute(HttpMethod.GET, "/", async (req, res) => {
+  res.statusCode = 200;
+  res.statusMessage = "OK";
+  res.headers.set("Content-Type", "text/plain");
+  return res;
+});
+
 router.addRoute(HttpMethod.GET, "/echo/:message", async (req, res) => {
   res.statusCode = 200;
   res.statusMessage = "OK";
