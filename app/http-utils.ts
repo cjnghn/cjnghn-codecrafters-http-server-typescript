@@ -1,4 +1,4 @@
-import { HttpMethod, HttpRequest, HttpResponse } from "./httpTypes";
+import { HttpMethod, HttpRequest, HttpResponse } from "./http-types";
 
 const CRLF = "\r\n";
 

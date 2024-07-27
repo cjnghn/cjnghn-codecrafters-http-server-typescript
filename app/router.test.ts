@@ -1,6 +1,6 @@
 import { describe, expect, test, mock, beforeEach } from "bun:test";
 import { Router } from "./router";
-import { HttpRequest, HttpResponse, HttpMethod } from "./httpTypes";
+import { HttpRequest, HttpResponse, HttpMethod } from "./http-types";
 
 // test helpers
 function createMockRequest(method: HttpMethod, path: string): HttpRequest {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { Route } from "./route";
-import { HttpMethod, HttpRequest, HttpResponse } from "./httpTypes";
+import { HttpMethod, HttpRequest, HttpResponse } from "./http-types";
 
 const echoHandler = (req: HttpRequest, res: HttpResponse): HttpResponse => {
   res.body = `Echo: ${req.params?.message}`;

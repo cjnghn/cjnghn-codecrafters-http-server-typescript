@@ -1,5 +1,5 @@
 import { Route } from "./route";
-import { HttpRequest, HttpResponse, HttpMethod } from "./httpTypes";
+import { HttpRequest, HttpResponse, HttpMethod } from "./http-types";
 
 /**
  * Manages routing of HTTP requests to the correct handlers based on method and path.

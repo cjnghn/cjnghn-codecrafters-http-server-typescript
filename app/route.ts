@@ -1,4 +1,4 @@
-import { HttpRequest, HttpResponse, HttpMethod } from "./httpTypes";
+import { HttpRequest, HttpResponse, HttpMethod } from "./http-types";
 
 /**
  * Represents a single route in the router with a method, path, and handler function.

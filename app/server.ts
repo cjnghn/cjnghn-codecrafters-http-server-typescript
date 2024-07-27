@@ -2,9 +2,9 @@ import * as net from "node:net";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-import { parseHttpRequest, formatHttpResponse } from "./httpUtils";
+import { parseHttpRequest, formatHttpResponse } from "./http-utils";
 import { Router } from "./router";
-import { HttpMethod } from "./httpTypes";
+import { HttpMethod } from "./http-types";
 import { handleCompression } from "./compression";
 
 export let FILE_DIRECTORY = "./";

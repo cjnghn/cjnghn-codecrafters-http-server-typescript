@@ -1,5 +1,5 @@
 import * as zlib from "node:zlib";
-import { HttpRequest, HttpResponse } from "./httpTypes";
+import { HttpRequest, HttpResponse } from "./http-types";
 
 export const handleCompression = async (
   req: HttpRequest,
