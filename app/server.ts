@@ -40,9 +40,7 @@ router.addRoute(HttpMethod.GET, "/echo/:message", async (req, res) => {
   res.headers.set("Content-Type", "text/plain");
   res.headers.set("Content-Length", `${req.params?.message.length}`);
   res.body = `${req.params?.message}`;
-
   await handleCompression(req, res);
-
   return res;
 });
 
@@ -97,7 +95,9 @@ const server = net.createServer((socket) => {
       const rawRequest = data.toString();
       const req = parseHttpRequest(rawRequest);
       const res = await router.route(req);
+      console.log("==res==\n", res);
       const rawResponse = formatHttpResponse(res);
+      console.log("==rawResponse==\n", rawResponse);
       socket.write(rawResponse);
     } catch (error) {
       console.error("Error handling HTTP request:", error);

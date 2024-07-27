@@ -43,40 +43,18 @@ export function parseHttpRequest(rawRequest: string): HttpRequest {
   };
 }
 
-/**
- * Formats an HttpResponse object into a raw HTTP response string.
- *
- * @param {HttpResponse} response - The HTTP response object to format.
- * @returns {string} A raw HTTP response string.
- * @example
- * ```ts
- * const response = {
- *   statusCode: 200,
- *   statusMessage: 'OK',
- *   headers: new Map([['Content-Type', 'text/html'], ['Content-Length', '1024']]),
- *   body: 'Hello, world!'
- * };
- * const httpResponse = formatHttpResponse(response);
- * console.log(httpResponse);
- * // Outputs:
- * // HTTP/1.1 200 OK
- * // Content-Type: text/html
- * // Content-Length: 1024
- * //
- * // Hello, world!
- * ```
- */
-export function formatHttpResponse(response: HttpResponse): string {
-  let responseText = `HTTP/1.1 ${response.statusCode} ${response.statusMessage}\r\n`;
+export function formatHttpResponse(response: HttpResponse): Buffer {
+  let headerText = `HTTP/1.1 ${response.statusCode} ${response.statusMessage}\r\n`;
   response.headers.forEach(
-    (value, key) => (responseText += `${key}: ${value}\r\n`)
+    (value, key) => (headerText += `${key}: ${value}\r\n`)
   );
-  responseText += CRLF;
-  if (response.body) {
-    responseText +=
-      response.body instanceof Buffer
-        ? response.body.toString()
-        : response.body;
-  }
-  return responseText;
+  headerText += "\r\n";
+
+  const headerBuffer = Buffer.from(headerText, "utf-8");
+  const bodyBuffer =
+    response.body instanceof Buffer
+      ? response.body
+      : Buffer.from(response.body || "");
+
+  return Buffer.concat([headerBuffer, bodyBuffer]);
 }
