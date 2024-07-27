@@ -28,10 +28,12 @@ router.addRoute(HttpMethod.GET, "/", async (req, res) => {
 });
 
 router.addRoute(HttpMethod.GET, "/user-agent", async (req, res) => {
+  const userAgent = req.headers.get("User-Agent");
   res.statusCode = 200;
   res.statusMessage = "OK";
   res.headers.set("Content-Type", "text/plain");
-  res.body = req.headers.get("User-Agent") ?? "";
+  res.headers.set("Content-Length", userAgent?.length.toString() ?? "0");
+  res.body = userAgent;
   return res;
 });
 
