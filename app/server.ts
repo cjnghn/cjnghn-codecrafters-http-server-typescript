@@ -27,6 +27,14 @@ router.addRoute(HttpMethod.GET, "/", async (req, res) => {
   return res;
 });
 
+router.addRoute(HttpMethod.GET, "/user-agent", async (req, res) => {
+  res.statusCode = 200;
+  res.statusMessage = "OK";
+  res.headers.set("Content-Type", "text/plain");
+  res.body = req.headers.get("User-Agent") ?? "";
+  return res;
+});
+
 router.addRoute(HttpMethod.GET, "/echo/:message", async (req, res) => {
   res.statusCode = 200;
   res.statusMessage = "OK";
